@@ -1,8 +1,9 @@
+import re
 
 import pandas as pd
 
 # 1. Load datasets
-daily_production_df = pd.read_parquet("./data/daily_production.parquet")
+daily_production_df = pd.read_parquet("./data/daily_production.parquet", columns=["uwi", "production_date", "oil_produced_m3", "water_produced_m3", "pump_efficiency_pct", "pcp_pump_rpm", "pcp_pump_rod_torque_ftlb"])
 production_failures_df = pd.read_parquet("./data/production_failures.parquet")
 well_jobs_df = pd.read_parquet("./data/well_jobs.parquet")
 
@@ -202,7 +203,7 @@ for i, row in enriched_failures_df.iterrows():
     }
 
     # Replace missing numerical values in sentence
-    sentence = sentence.replace("nan", "Not recorded")
+    sentence = re.sub(r"\bnan\b", "Not recorded", sentence)
 
     failure_instances_sentences.append(sentence)
     failure_instances_metadata.append(metadata)
@@ -214,3 +215,8 @@ invalid_efficiency = daily_production_df[
     (daily_production_df["pump_efficiency_pct"] > 1)
 ]
 
+
+import vector_store
+
+vector_store.reset()
+vector_store.add(failure_instances_ids, failure_instances_sentences, failure_instances_metadata)
