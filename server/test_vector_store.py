@@ -43,27 +43,27 @@ def test_add_skips_empty_notes_and_search_finds_the_right_one():
     assert load() == 3
     assert vector_store.count() == 3
     top = vector_store.search("rod string parted and was welded", n=2)
-    assert [r["id"] for r in top][0] == "j1"
-    assert top[0]["similarity"] > top[1]["similarity"]
+    assert top["id"][0] == "j1"
+    assert top["similarity"][0] > top["similarity"][1]
 
 
-def test_metadata_comes_back_as_plain_json_types():
+def test_metadata_comes_back_as_plain_columns():
     load()
-    by_id = {r["id"]: r["metadata"] for r in vector_store.search("repair", n=3)}
-    assert by_id["j1"] == {
+    by_id = vector_store.search("repair", n=3).set_index("id")
+    assert by_id.loc["j1", ["field_operating_area", "start_date", "cost", "objective"]].to_dict() == {
         "field_operating_area": "Winter",
         "start_date": "2024-03-05T00:00:00",
         "cost": 6031.5,
         "objective": "Rod repair",
     }
-    assert "objective" not in by_id["j2"]  # None dropped
-    assert "start_date" not in by_id["j3"] and "cost" not in by_id["j3"]  # NaT and NaN dropped
+    assert pd.isna(by_id.loc["j2", "objective"])  # None was not stored
+    assert by_id.loc["j3", ["start_date", "cost"]].isna().all()  # nor NaT and NaN
 
 
 def test_where_filters_on_metadata():
     load()
     hits = vector_store.search("pump or tubing work", n=5, where={"field_operating_area": "Winter"})
-    assert {r["id"] for r in hits} == {"j1", "j3"}
+    assert set(hits["id"]) == {"j1", "j3"}
 
 
 def test_add_twice_overwrites_instead_of_duplicating():
@@ -81,7 +81,7 @@ def test_rows_without_metadata_and_more_rows_than_one_batch(monkeypatch):
     )
     assert vector_store.add(["a", "b", "c"], ["rod break", "pump change", "tubing leak"]) == 3
     assert sizes == [2, 1]
-    assert vector_store.search("rod break", n=1)[0]["metadata"] == {}
+    assert list(vector_store.search("rod break", n=1).columns) == ["id", "text", "similarity"]
 
 
 def test_bad_input_is_refused():
