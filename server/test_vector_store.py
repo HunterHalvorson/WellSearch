@@ -93,6 +93,14 @@ def test_bad_input_is_refused():
         vector_store.search("   ")
 
 
+def test_fast_query_vector_matches_the_one_chroma_stores():
+    # search() embeds the query itself; if a Chroma upgrade changes its model or pooling, this fails first
+    for text in ["hole in tubing", "rod parted at the upset on a deviated well " * 40]:
+        fast = vector_store._query_embedder()([text])[0]
+        stored = vector_store.ONNXMiniLM_L6_V2()([text])[0]
+        assert np.allclose(fast, stored, atol=1e-5)
+
+
 def test_reset_empties_the_store_and_is_safe_to_repeat():
     load()
     vector_store.reset()
