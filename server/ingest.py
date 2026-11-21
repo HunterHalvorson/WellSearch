@@ -1,5 +1,3 @@
-import re
-
 import pandas as pd
 from vector_store import add
 
@@ -232,29 +230,12 @@ for i, row in enriched_failures_df.iterrows():
         if pd.notna(value)
     }
 
-<<<<<<< HEAD
-    # Replace missing numerical values in sentence
-    sentence = re.sub(r"\bnan\b", "Not recorded", sentence)
-
-=======
->>>>>>> 0b5d1b8 (.)
     failure_instances_sentences.append(sentence)
     failure_instances_metadata.append(metadata)
     failure_instances_ids.append(f"failure_{len(failure_instances_ids)}")
 
 
-invalid_efficiency = daily_production_df[
-    (daily_production_df["pump_efficiency_pct"] < 0) |
-    (daily_production_df["pump_efficiency_pct"] > 1)
-]
 
-
-<<<<<<< HEAD
-import vector_store
-
-vector_store.reset()
-vector_store.add(failure_instances_ids, failure_instances_sentences, failure_instances_metadata)
-=======
 # 7. Store records in ChromaDB
 
 add(
@@ -264,4 +245,3 @@ add(
 )
 
 print("Successfully finished inserting failure records into ChromaDB!")
->>>>>>> 0b5d1b8 (.)
