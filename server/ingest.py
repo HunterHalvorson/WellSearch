@@ -1,6 +1,7 @@
 import re
 
 import pandas as pd
+from vector_store import add
 
 # 1. Load datasets
 daily_production_df = pd.read_parquet("./data/daily_production.parquet", columns=["uwi", "production_date", "oil_produced_m3", "water_produced_m3", "pump_efficiency_pct", "pcp_pump_rpm", "pcp_pump_rod_torque_ftlb"])
@@ -162,37 +163,66 @@ enriched_failures_df = enriched_failures_df.fillna({
     "job_summary": "Not recorded"
 })
 
+
+# 6. Create documents and metadata for ChromaDB
+
 failure_instances_sentences = []
 failure_instances_metadata = []
 failure_instances_ids = []
 
 for i, row in enriched_failures_df.iterrows():
+
+    # Format numerical values without modifying other text
+    oil = (
+        f"{row['avg_30d_oil_produced_m3']:.2f}"
+        if pd.notna(row["avg_30d_oil_produced_m3"])
+        else "Not recorded"
+    )
+
+    efficiency = (
+        f"{row['avg_30d_pump_efficiency_pct'] * 100:.2f}"
+        if pd.notna(row["avg_30d_pump_efficiency_pct"])
+        else "Not recorded"
+    )
+
+    rpm = (
+        f"{row['avg_30d_pcp_pump_rpm']:.2f}"
+        if pd.notna(row["avg_30d_pcp_pump_rpm"])
+        else "Not recorded"
+    )
+
+    torque = (
+        f"{row['avg_30d_pcp_pump_rod_torque_ftlb']:.2f}"
+        if pd.notna(row["avg_30d_pcp_pump_rod_torque_ftlb"])
+        else "Not recorded"
+    )
+
     sentence = f"""
         Well {row['uwi']} experienced a {row['failure_type']}
         caused by {row['cause']}. The failure involved
         {row['failure_detail']}.
 
         During the 30 days before failure, the well averaged
-        {row['avg_30d_oil_produced_m3']:.2f} m³ of oil production per recorded day,
-        {row['avg_30d_pump_efficiency_pct'] * 100:.2f}% pump efficiency,
-        {row['avg_30d_pcp_pump_rpm']:.2f} RPM,
-        and {row['avg_30d_pcp_pump_rod_torque_ftlb']:.2f} ft-lb of rod torque.
+        {oil} m³ of oil production per recorded day,
+        {efficiency}% pump efficiency,
+        {rpm} RPM,
+        and {torque} ft-lb of rod torque.
 
         Following the failure, maintenance work included
         {row['job_type']}, described as {row['job_summary']}.
     """
 
     metadata = {
-        'uwi': row['uwi'],
-        'failure_type': row['failure_type'],
-        'cause': row['cause'],
-        'failure_detail': row['failure_detail'],
-        'avg_30d_oil_produced_m3': row['avg_30d_oil_produced_m3'],
-        'avg_30d_pump_efficiency_pct': row['avg_30d_pump_efficiency_pct'],
-        'avg_30d_pcp_pump_rpm': row['avg_30d_pcp_pump_rpm'],
-        'avg_30d_pcp_pump_rod_torque_ftlb': row['avg_30d_pcp_pump_rod_torque_ftlb'],
-        'job_type': row['job_type'],
-        'job_summary': row['job_summary']
+        "uwi": row["uwi"],
+        "failure_type": row["failure_type"],
+        "cause": row["cause"],
+        "failure_detail": row["failure_detail"],
+        "avg_30d_oil_produced_m3": row["avg_30d_oil_produced_m3"],
+        "avg_30d_pump_efficiency_pct": row["avg_30d_pump_efficiency_pct"],
+        "avg_30d_pcp_pump_rpm": row["avg_30d_pcp_pump_rpm"],
+        "avg_30d_pcp_pump_rod_torque_ftlb": row["avg_30d_pcp_pump_rod_torque_ftlb"],
+        "job_type": row["job_type"],
+        "job_summary": row["job_summary"]
     }
 
     # Remove missing metadata values
@@ -202,9 +232,12 @@ for i, row in enriched_failures_df.iterrows():
         if pd.notna(value)
     }
 
+<<<<<<< HEAD
     # Replace missing numerical values in sentence
     sentence = re.sub(r"\bnan\b", "Not recorded", sentence)
 
+=======
+>>>>>>> 0b5d1b8 (.)
     failure_instances_sentences.append(sentence)
     failure_instances_metadata.append(metadata)
     failure_instances_ids.append(f"failure_{len(failure_instances_ids)}")
@@ -216,7 +249,19 @@ invalid_efficiency = daily_production_df[
 ]
 
 
+<<<<<<< HEAD
 import vector_store
 
 vector_store.reset()
 vector_store.add(failure_instances_ids, failure_instances_sentences, failure_instances_metadata)
+=======
+# 7. Store records in ChromaDB
+
+add(
+    failure_instances_ids,
+    failure_instances_sentences,
+    failure_instances_metadata
+)
+
+print("Successfully finished inserting failure records into ChromaDB!")
+>>>>>>> 0b5d1b8 (.)
