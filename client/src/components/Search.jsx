@@ -1,23 +1,47 @@
 import './css/Search.css';
 import { Search as SearchIcon } from "lucide-react";
+import { useState } from 'react';
 
-function Search({ inputRef, value, onChange, onSubmit }) {
+
+
+function Search() {
+
+  const [search, setSearch] = useState('');
+
+  const handleSearch = async () => {
+
+    if (!search.trim()) {
+      alert("Please Enter a Valid Search");
+    }
+
+    const response = await fetch("http://localhost:8000/search", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: search
+      })
+    })
+
+    const data = await response.json();
+    console.log(data);
+  }
+
+
   return (
-    <form className="search-container" role="search" onSubmit={onSubmit}>
-      <div className="input-container">
-        <input
-          ref={inputRef}
-          className="search-box"
-          type="text"
-          aria-label="Search question"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <button className="search-button" type="submit" aria-label="Search">
-          <SearchIcon className="search-icon" size={50} />
-        </button>
-      </div>
-    </form>
+    <div className = "search-container">
+        <div className="input-container">
+            <input 
+              className = "search-box" type="text" 
+              value = {search}
+              onChange = {(e) => setSearch(e.target.value)}
+            />
+            <button className = 'search-button'>
+                <SearchIcon onClick = {handleSearch} className = 'search-icon' size = {50}/>
+            </button>
+        </div>
+    </div>
   )
 }
 
