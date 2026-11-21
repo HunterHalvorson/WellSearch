@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from vector_store import search
+import llm
 
 
 class Search(BaseModel):
@@ -38,3 +39,12 @@ def query_search(request: Search):
     df = df.astype(object).where(pd.notna(df), None)
 
     return df.to_dict(orient="records")
+
+
+@app.post("/ask")
+def ask(request: Search):
+    """The same records as /search plus an answer written from them: {"answer", "results"}."""
+    try:
+        return llm.ask(request.query)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error))
