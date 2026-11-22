@@ -17,6 +17,11 @@ EQUIPMENT = {
     "casing": r"\b(?:casing|csig)\b",
     "packer": r"\bpackers?\b",
 }
+EQUIPMENT_ITEM = rf"(?:{'|'.join(EQUIPMENT.values())})(?:\s+failures?)?"
+EXCLUDED_EQUIPMENT = re.compile(
+    rf"\b(?:besides|excluding|except(?:\s+for)?|other\s+than)\s+(?:all\s+|the\s+)?"
+    rf"(?P<types>{EQUIPMENT_ITEM}(?:(?:\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+){EQUIPMENT_ITEM})*)"
+)
 METRICS = (
     (r"\befficienc\w*\b", "avg_30d_pump_efficiency_pct", "Pump efficiency (%)", 100),
     (r"\b(?:rpm|pump speed)\b", "avg_30d_pcp_pump_rpm", "Pump speed (RPM)", 1),
@@ -169,27 +174,37 @@ def row_label(matches, index):
     return uwi if pd.notna(uwi) and uwi else "Incident"
 
 
+def equipment_types(text):
+    return [name for name, pattern in EQUIPMENT.items() if re.search(pattern, text)]
+
+
 def chart_search(question, search):
     query = question.casefold()
+    excluded = equipment_types(" ".join(match["types"] for match in EXCLUDED_EQUIPMENT.finditer(query)))
+    ranking_query = EXCLUDED_EQUIPMENT.sub(" ", query).strip()
+    equipment = [name for name in equipment_types(ranking_query) if name not in excluded]
     downtime = bool(re.search(r"\b(?:downtime|hours? down)\b", query))
     trend = bool(re.search(r"\b(?:monthly|trend\w*|month[ -](?:by[ -]month|over[ -]month)|by month|over time)\b", query))
     words = dict(zip("one two three four five six seven eight nine ten".split(), range(1, 11)))
     count = rf"(\d{{1,9}}|{'|'.join(words)})"
-    group = r"(?:wells?|(?:operating )?areas?|causes?)"
+    group = r"(?:wells?|(?:operating )?areas?|causes?|failure types?)"
     limit_match = re.search(
-        rf"\b(?:top|first|highest|most)\s+{count}(?:\s+{group})?\b"
-        rf"|\b{count}\s+(?:worst\s+|top\s+|highest\s+)?{group}\b", query)
+        rf"\b(?:top|first|highest|most(?:\s+common)?)\s+{count}(?:\s+{group})?\b"
+        rf"|\b{count}\s+(?:(?:worst|top|highest|most common)\s+)?{group}\b", ranking_query)
     value = next((value for value in limit_match.groups() if value), None) if limit_match else None
     limit = int(value) if value and value.isdecimal() else words.get(value)
-    time_query = query[:limit_match.start()] + " " + query[limit_match.end():] if limit_match else query
+    time_query = (ranking_query[:limit_match.start()] + " " + ranking_query[limit_match.end():]
+                  if limit_match else ranking_query)
     area_group = bool(re.search(r"\b(?:by|per|across|which|rank)\s+(?:operating\s+)?areas?\b|\bareas with\b|\bwhere\b", query)
                       or (limit_match and re.search(r"\bareas?\b", limit_match[0])))
     cause_group = bool(re.search(r"\bcauses\b|\b(?:(?:by|per) cause|cause breakdown)\b", query))
-    well_group = bool(re.search(r"\b(?:by|per|which) wells?\b", query)
+    well_group = bool(re.search(r"\b(?:by|per|which|rank|top) wells?\b|\bwells? with the most\b", ranking_query)
                       or (limit_match and re.search(r"\bwells?\b", limit_match[0])))
-    ranking = limit is not None or well_group or area_group or cause_group or bool(
-        re.search(r"\b(?:rank\w*|breakdown|most|highest|worst)\b", query))
-    equipment = [name for name, pattern in EQUIPMENT.items() if re.search(pattern, query)]
+    type_group = bool(re.search(
+        rf"\bfailure types?\b|\b(?:top|most common|most frequent)\s+(?:{count}\s+)?(?:equipment\s+)?failures\b",
+        ranking_query))
+    ranking = limit is not None or well_group or area_group or cause_group or type_group or bool(
+        re.search(r"\b(?:rank\w*|breakdown|most|highest|worst)\b", ranking_query))
     failure_query = bool(re.search(r"\b(?:fail\w*|breakdowns?|incidents?)\b", query))
     overview = not (downtime or trend or failure_query) and bool(
         re.search(r"\b(?:status|overview|how\s+(?:are|is)|performing|doing|wells? (?:are )?down)\b", query))
@@ -202,7 +217,7 @@ def chart_search(question, search):
         r"[a-z][a-z -]*?(?=\s+in\s+(?:19|20)\d{2}\b|[?!.]?$)", time_query)
     if not area and (overview or ((ranking or trend or downtime) and unknown_location)):
         return message("Choose a recorded operating area, such as Cactus Lake or Winter.")
-    if downtime and (equipment or trend or cause_group):
+    if downtime and (equipment or excluded or trend or cause_group):
         return message("Recorded downtime is available by operating area or well.")
     if not (downtime or ranking or trend or overview):
         if area or re.search(r"\b(?:19|20)\d{2}\b|\b(?:last|past|previous|this)\b", time_query):
@@ -218,7 +233,8 @@ def chart_search(question, search):
     display_start, display_end = (start, end) if covered else (requested_start, requested_end)
     period = (f"{display_start:%b %d, %Y} – {display_end:%b %d, %Y}"
               if pd.notna(display_start) and pd.notna(display_end) else None)
-    scope = " · ".join(part for part in (area, period) if part)
+    exclusion = f"Excluding {' / '.join(excluded)} failures" if excluded else None
+    scope = " · ".join(part for part in (area, period, exclusion) if part)
     if area:
         data = data[data[AREA].eq(area)]
     data = data[data["date"].between(start, end)]
@@ -229,6 +245,9 @@ def chart_search(question, search):
     if equipment:
         data = data[data["failure_type"].str.contains(
             "|".join(EQUIPMENT[name] for name in equipment), case=False, na=False)]
+    if excluded:
+        data = data[~data["failure_type"].str.contains(
+            "|".join(EQUIPMENT[name] for name in excluded), case=False, na=False)]
     label = f"{' / '.join(equipment).capitalize()} failures" if equipment else "Equipment failures"
     prefix = f"Top {limit} · " if limit is not None else ""
     if trend:
@@ -241,8 +260,16 @@ def chart_search(question, search):
     if area_group and not downtime and not cause_group:
         return {**area_breakdown(data, f"{prefix}{label} by operating area and recorded cause", limit, scope),
                 "period": period}
-    grouping = "cause" if cause_group else "uwi" if well_group or not downtime else AREA
-    group_label = {"cause": "recorded cause", "uwi": "well", AREA: "operating area"}[grouping]
+    if cause_group:
+        grouping = "cause"
+    elif well_group:
+        grouping = "uwi"
+    elif downtime:
+        grouping = AREA
+    else:
+        grouping = "failure_type" if type_group or not equipment else "uwi"
+    group_label = {"cause": "recorded cause", "uwi": "well", AREA: "operating area",
+                   "failure_type": "recorded type"}[grouping]
     metric = "hours_down" if downtime else None
     grouped = data.dropna(subset=[metric]).groupby(grouping) if metric else data.groupby(grouping)
     values = grouped[metric].sum() if metric else grouped.size()
