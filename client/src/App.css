@@ -1,27 +1,1020 @@
+/*
+  Direction:  The field is the interface. Wells are drawn where they are, from their survey addresses.
+  Is not:     a dashboard of cards; a search box on an empty page.
+  Signature:  the field map, with the failure record playing across it.
+  Palette:    petrol ground and canola yellow, the two things this country grows and pumps.
+  Dials:      boldness 7/10, motion 5/10 (all of it on the map).
+*/
+
+:root {
+    /* Contrast against --ground is noted where a colour carries text. */
+    --ground: #07252B;
+    --surface: #0D3239;       /* panels: one step up */
+    --raised: #154049;        /* inputs and hover: two steps up */
+    --ink: #F4F1E6;           /* 14.2:1 */
+    --ink-soft: #A3BDBE;      /* 7.6:1 */
+    --rule: #25545D;
+    --rule-soft: #17424A;
+    --signal: #FFD21F;        /* 11.1:1; the one accent, and the single data series */
+    --on-signal: #07252B;
+    --ok: #3FE0C0;
+    --warn: #FFD21F;
+    --down: #FF7A5C;
+    --idle: #7C9C9E;          /* 5.2:1 */
+
+    /* Read by the map canvas. */
+    --grid: rgba(163, 189, 190, 0.11);
+    --grid-text: rgba(163, 189, 190, 0.55);
+    --border-line: rgba(244, 241, 230, 0.4);
+
+    --font-display: "Unbounded Variable", "Arial Black", sans-serif;
+    --font-body: "Onest Variable", "Segoe UI", sans-serif;
+    --font-data: "Martian Mono Variable", Consolas, monospace;
+
+    --s1: 4px;
+    --s2: 8px;
+    --s3: 12px;
+    --s4: 16px;
+    --s5: 24px;
+    --s6: 32px;
+    --s7: 48px;
+    --s8: 72px;
+
+    --radius: 14px;
+    --radius-small: 8px;
+    --pill: 999px;
+    --page: 1320px;
+    --bar: 64px;
+    --quick: 140ms;
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-body {
-    background-color: #0B1120;
+html {
+    -webkit-text-size-adjust: 100%;
+    color-scheme: dark;
 }
 
-.App {
-    width: 100vw;
+body {
+    background-color: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+button,
+input,
+select {
+    font: inherit;
+    color: inherit;
+}
+
+a {
+    color: inherit;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+}
+
+a:hover {
+    color: var(--signal);
+}
+
+:is(a, button, select, input, summary, [tabindex="0"]):focus-visible {
+    outline: 2px solid var(--signal);
+    outline-offset: 2px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+}
+
+/* Field names, table heads, section names. */
+.label,
+.pairs dt,
+thead th,
+.panel h4 {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+
+.muted {
+    color: var(--ink-soft);
+}
+
+.data {
+    font-family: var(--font-data);
+    font-size: 0.9em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Shell */
+.shell {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+}
+
+.bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background-color: var(--ground);
+    border-bottom: 1px solid var(--rule-soft);
+}
+
+/* On the home page the bar sits on the map. */
+.bar.over {
+    position: absolute;
+    inset: 0 0 auto;
+    background: none;
+    border: 0;
+}
+
+.bar-inner {
+    min-height: var(--bar);
+    padding: var(--s2) var(--s5);
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 50px;
+    gap: var(--s2) var(--s5);
 }
 
-.App .t1 {
-    color:white
+.wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s2);
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-decoration: none;
 }
 
-.App .t2 {
-    color:hotpink
+/* The same ring the map draws around a selected well. */
+.wordmark::before {
+    content: "";
+    width: 14px;
+    height: 14px;
+    border: 3px solid var(--signal);
+    border-radius: 50%;
+}
+
+.wordmark:hover {
+    color: var(--ink);
+}
+
+.bar .search {
+    flex: 1 1 320px;
+    max-width: 620px;
+}
+
+.bar-nav {
+    margin-left: auto;
+    display: flex;
+    gap: var(--s1);
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.bar-nav a {
+    padding: var(--s2) var(--s3);
+    border-radius: var(--pill);
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color var(--quick), background-color var(--quick);
+}
+
+.bar-nav a:hover {
+    color: var(--ink);
+}
+
+.bar-nav a[aria-current="page"] {
+    background-color: var(--raised);
+    color: var(--ink);
+}
+
+.count {
+    margin-left: 6px;
+    font-family: var(--font-data);
+    font-size: 12px;
+    color: var(--signal);
+}
+
+.notice {
+    padding: var(--s3) var(--s5);
+    text-align: center;
+    background-color: var(--signal);
+    color: var(--on-signal);
+}
+
+.page {
+    width: 100%;
+    max-width: var(--page);
+    margin: 0 auto;
+    padding: var(--s6) var(--s5) var(--s8);
+    display: grid;
+    gap: var(--s6);
+    align-content: start;
+}
+
+/* Buttons */
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s2);
+    min-height: 40px;
+    padding: var(--s2) var(--s4);
+    background-color: var(--raised);
+    border: 0;
+    border-radius: var(--pill);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--quick), color var(--quick), transform var(--quick) var(--ease);
+}
+
+.button:hover:not(:disabled) {
+    background-color: var(--signal);
+    color: var(--on-signal);
+}
+
+.button:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.button:disabled {
+    color: var(--idle);
+    cursor: not-allowed;
+}
+
+.button.quiet {
+    background: none;
+    padding-inline: var(--s2);
+    color: var(--ink-soft);
+}
+
+.button.quiet:hover:not(:disabled) {
+    background: none;
+    color: var(--signal);
+}
+
+.button.icon {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.button[aria-pressed="true"] svg {
+    fill: var(--signal);
+    stroke: var(--signal);
+}
+
+.button[aria-pressed="true"]:hover svg {
+    fill: var(--on-signal);
+    stroke: var(--on-signal);
+}
+
+.field {
+    display: grid;
+    justify-items: start;
+    gap: var(--s1);
+}
+
+.control {
+    min-height: 40px;
+    max-width: 100%;
+    padding: var(--s2) var(--s4);
+    background-color: var(--raised);
+    border: 0;
+    border-radius: var(--pill);
+}
+
+/* Well tag: the identifier in its survey form. */
+.uwi {
+    display: inline-block;
+    padding: 2px 8px;
+    background-color: var(--raised);
+    border-radius: 6px;
+    font-family: var(--font-data);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+
+.uwi .edge {
+    font-weight: 400;
+    color: var(--ink-soft);
+}
+
+.uwi.large {
+    padding: 4px 12px;
+    border-radius: var(--radius-small);
+    font-size: 17px;
+}
+
+/* Status: a lamp plus the word, so colour is never the only signal. */
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.status::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: currentColor;
+}
+
+.status.producing { color: var(--ok); }
+.status.reducedOutput { color: var(--warn); }
+.status.down { color: var(--down); }
+.status.noData { color: var(--idle); }
+
+.status.noData::before {
+    background-color: transparent;
+    border: 2px solid currentColor;
+}
+
+/* Field map */
+.fieldmap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.fieldmap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    touch-action: none;
+}
+
+.fieldmap canvas:active {
+    cursor: grabbing;
+}
+
+.fieldmap canvas.pointing {
+    cursor: pointer;
+}
+
+.fieldmap-card {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    justify-items: start;
+    gap: 2px;
+    max-width: 260px;
+    padding: var(--s2) var(--s3);
+    background-color: var(--raised);
+    border-radius: var(--radius-small);
+    font-size: 13px;
+    pointer-events: none;
+    transform: translate(14px, 14px);
+}
+
+.fieldmap-tools {
+    position: absolute;
+    display: grid;
+    gap: var(--s1);
+}
+
+.fieldmap-tools .button {
+    width: 36px;
+    min-height: 36px;
+    background-color: var(--surface);
+}
+
+.map-frame {
+    position: sticky;
+    top: calc(var(--bar) + var(--s5));
+    height: min(calc(100vh - var(--bar) - var(--s7)), 720px);
+    background-color: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.split {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: start;
+    gap: var(--s5);
+}
+
+/* Home: the map fills the window and everything else floats on it. */
+.home {
+    position: relative;
+    flex: 1;
+    min-height: 100svh;
+}
+
+.home-map {
+    position: absolute;
+    inset: 0;
+}
+
+/* Keeps the question readable where the grid runs under it. */
+.home-map::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 560px;
+    background: linear-gradient(to right, var(--ground) 30%, transparent);
+    pointer-events: none;
+}
+
+.map-status {
+    position: absolute;
+    right: var(--s5);
+    bottom: var(--s5);
+}
+
+.ask {
+    position: absolute;
+    left: var(--s6);
+    bottom: var(--s6);
+    z-index: 1;
+    width: min(440px, calc(100% - var(--s8)));
+    display: grid;
+    gap: var(--s4);
+}
+
+.home h1 {
+    font-size: clamp(30px, 3.1vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+}
+
+.lede {
+    color: var(--ink-soft);
+}
+
+.examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2);
+    list-style: none;
+}
+
+.example {
+    padding: 6px var(--s3);
+    background-color: var(--surface);
+    border: 0;
+    border-radius: 18px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--quick), color var(--quick);
+}
+
+.example:hover {
+    background-color: var(--signal);
+    color: var(--on-signal);
+}
+
+/* Panels that sit on the map let it show through a little, so the map never looks cut off. */
+.hud {
+    position: absolute;
+    display: grid;
+    gap: var(--s3);
+    padding: var(--s5);
+    background-color: rgba(13, 50, 57, 0.88);
+    border-radius: var(--radius);
+    backdrop-filter: blur(10px);
+}
+
+.lapse {
+    right: var(--s6);
+    bottom: var(--s6);
+    width: 320px;
+}
+
+.lapse p {
+    font-variant-numeric: tabular-nums;
+}
+
+.lapse-date {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.lapse-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+}
+
+.button.play {
+    background-color: var(--signal);
+    color: var(--on-signal);
+}
+
+.button.play:hover:not(:disabled) {
+    background-color: var(--ink);
+}
+
+input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    background: none;
+    accent-color: var(--signal);
+    cursor: pointer;
+}
+
+.legend.causes {
+    display: grid;
+    gap: 2px;
+}
+
+.legend.causes li {
+    display: flex;
+}
+
+.legend.causes .data {
+    margin-left: auto;
+    color: var(--ink-soft);
+}
+
+.well-card {
+    top: calc(var(--bar) + var(--s3));
+    right: var(--s6);
+    width: 320px;
+    /* Ends above the timeline panel; the list of failures scrolls inside it. */
+    max-height: calc(100% - var(--bar) - 470px);
+    min-height: 240px;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    animation: arrive 220ms var(--ease);
+}
+
+.well-card .well-head {
+    flex-wrap: nowrap;
+}
+
+.well-card .uwi.large {
+    font-size: 13px;
+}
+
+.well-card .events {
+    padding-left: 0;
+    list-style: none;
+    overflow-y: auto;
+}
+
+.well-card .events strong {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    font-weight: 500;
+}
+
+.well-card .events p {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 14px;
+}
+
+@keyframes arrive {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+/* Results */
+.question-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--s4);
+}
+
+.question,
+.page h1 {
+    font-size: clamp(24px, 2.6vw, 36px);
+    letter-spacing: -0.03em;
+    max-width: 26ch;
+    overflow-wrap: anywhere;
+}
+
+.frame,
+.panel {
+    display: grid;
+    gap: var(--s4);
+    min-width: 0;
+    padding: var(--s5);
+    background-color: var(--surface);
+    border-radius: var(--radius);
+}
+
+.frame-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s1) var(--s5);
+}
+
+.frame-head h2,
+.frame-head h4,
+.section-title,
+.panel h3,
+.stack > h3 {
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+/* A saved view already carries its own title; the chart's is the smaller one. */
+.frame-head h4 {
+    font-family: var(--font-body);
+    font-size: 14px;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.scope {
+    font-family: var(--font-data);
+    font-size: 11px;
+    color: var(--ink-soft);
+}
+
+.chart {
+    min-width: 0;
+}
+
+.empty {
+    display: grid;
+    place-items: center;
+    min-height: 160px;
+    padding: var(--s5);
+    border: 1px dashed var(--rule);
+    border-radius: var(--radius-small);
+    color: var(--ink-soft);
+    text-align: center;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s1) var(--s4);
+    list-style: none;
+    font-size: 14px;
+}
+
+.legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s2);
+}
+
+.swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tooltip {
+    padding: var(--s2) var(--s3);
+    background-color: var(--raised);
+    border-radius: var(--radius-small);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.tooltip strong {
+    display: block;
+    font-weight: 600;
+}
+
+.stack {
+    display: grid;
+    gap: var(--s4);
+    min-width: 0;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: var(--s3) var(--s4);
+}
+
+.well-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s3) var(--s4);
+}
+
+.well-head .button {
+    margin-left: auto;
+}
+
+.pairs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+    gap: var(--s4) var(--s5);
+}
+
+.pairs dd {
+    font-size: 17px;
+}
+
+.pairs .note {
+    font-size: 14px;
+    color: var(--ink-soft);
+}
+
+.pairs.inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2) var(--s5);
+}
+
+/* Recharts draws SVG, so the axes are styled here from the same tokens. */
+.recharts-cartesian-axis-tick-value {
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+}
+
+.recharts-cartesian-grid line {
+    stroke: var(--rule-soft);
+}
+
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line {
+    stroke: var(--rule);
+}
+
+.recharts-label {
+    fill: var(--ink-soft);
+    font-size: 12px;
+}
+
+.recharts-bar-rectangle path {
+    transition: opacity var(--quick);
+}
+
+/* Tables */
+.table-scroll {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+th,
+td {
+    padding: 10px var(--s4) 10px 0;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--rule-soft);
+}
+
+thead th {
+    white-space: nowrap;
+    border-bottom-color: var(--rule);
+}
+
+tbody th {
+    font-weight: 400;
+}
+
+tbody tr:hover {
+    background-color: rgba(244, 241, 230, 0.03);
+}
+
+.number {
+    text-align: right;
+    font-family: var(--font-data);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+thead th.number {
+    font-family: var(--font-body);
+    font-size: 12px;
+}
+
+td .button {
+    min-height: 36px;
+    padding: 2px var(--s3);
+}
+
+.events {
+    display: grid;
+    gap: var(--s3);
+    padding-left: var(--s5);
+}
+
+.events p {
+    color: var(--ink-soft);
+}
+
+/* Area status */
+.strip {
+    display: flex;
+    gap: 2px;
+    height: 20px;
+    border-radius: var(--pill);
+    overflow: hidden;
+}
+
+.strip span {
+    min-width: 2px;
+}
+
+.strip .producing { background-color: var(--ok); }
+.strip .reducedOutput { background-color: var(--warn); }
+.strip .down { background-color: var(--down); }
+.strip .noData { background-color: var(--rule); }
+
+.strip-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2) var(--s5);
+}
+
+.strip-key div {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s2);
+}
+
+.strip-key dd {
+    font-family: var(--font-data);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+}
+
+.fineprint {
+    max-width: 75ch;
+    font-size: 13px;
+    color: var(--ink-soft);
+}
+
+/* Similar past failures */
+.summary {
+    display: grid;
+    gap: var(--s3);
+    max-width: 75ch;
+    font-size: 17px;
+}
+
+.summary ul {
+    display: grid;
+    gap: var(--s2);
+    padding-left: var(--s5);
+}
+
+.summary li::marker {
+    color: var(--signal);
+}
+
+.cases summary {
+    cursor: pointer;
+    color: var(--ink-soft);
+}
+
+.cases summary:hover {
+    color: var(--signal);
+}
+
+.cases details p {
+    margin-top: var(--s2);
+    max-width: 56ch;
+    font-size: 14px;
+    color: var(--ink-soft);
+}
+
+/* Saved views */
+.saved {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+    gap: var(--s5);
+}
+
+.saved .panel {
+    align-content: start;
+    overflow-wrap: anywhere;
+}
+
+.saved .frame {
+    padding: 0;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2) var(--s3);
+}
+
+.status-line {
+    color: var(--ink-soft);
+}
+
+@media (max-width: 1100px) {
+    .split {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .map-frame {
+        position: static;
+        height: 420px;
+    }
+}
+
+/* Narrow windows: the map becomes the top of a page that scrolls. */
+@media (max-width: 899px) {
+    .home {
+        display: grid;
+        align-content: start;
+        gap: var(--s5);
+        padding-bottom: var(--s7);
+    }
+
+    .home-map {
+        position: relative;
+        order: -2;
+        height: 62svh;
+    }
+
+    .home-map::after {
+        display: none;
+    }
+
+    .ask,
+    .hud {
+        position: static;
+        width: auto;
+        max-height: none;
+        margin-inline: var(--s4);
+    }
+
+    .well-card .events {
+        overflow-y: visible;
+    }
+
+    .well-card {
+        order: -1;
+    }
+
+    .page {
+        padding: var(--s5) var(--s4) var(--s7);
+    }
+
+    .bar-inner {
+        padding-inline: var(--s4);
+    }
+
+    .frame,
+    .panel {
+        padding: var(--s4);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
 }
