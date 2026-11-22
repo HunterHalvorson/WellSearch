@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-DATA = Path(__file__).resolve().parent.parent / "Data"
+DATA = Path(__file__).resolve().parent / "data"
 AREA = "field_operating_area"
 EXAMPLE = 'Try “Top 5 wells by rod failures in Winter” or “Downtime by operating area”.'
 EQUIPMENT = {
