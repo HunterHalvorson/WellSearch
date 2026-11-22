@@ -6,7 +6,7 @@ Built for the DSMLC Chirality Research x Canary Labs Datathon 2026 (theme: optim
 
 **Team:** Hunter Halvorson, Ibrahim, Abdalla Eldoumani
 
-**Video:** (link)  
+**Video:** [WellSearch Demo](https://youtu.be/cLv5ne9Rkiw)
 **Slides:** [WellSearch Presentation](https://docs.google.com/presentation/d/18gMYh0K0BjPr19C_dsX7zfEwPReeYNhYIMuXM58oz38/edit?usp=sharing)
 
 ## Research question
