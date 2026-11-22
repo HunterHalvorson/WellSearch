@@ -7,7 +7,7 @@ Built for the DSMLC Chirality Research x Canary Labs Datathon 2026 (theme: optim
 **Team:** Hunter Halvorson, Ibrahim, Abdalla Eldoumani
 
 **Video:** (link)  
-**Slides:** (link)
+**Slides:** [WellSearch Presentation](https://docs.google.com/presentation/d/18gMYh0K0BjPr19C_dsX7zfEwPReeYNhYIMuXM58oz38/edit?usp=sharing)
 
 ## Research question
 
@@ -90,10 +90,12 @@ FastAPI, pandas and PyArrow, ChromaDB with the all-MiniLM-L6-v2 embedding model,
 
 ## AI use
 
-We used AI assistants throughout and want to be specific about where.
+We used AI assistants throughout development and want to be transparent about their involvement.
 
-- **Hunter** used ChatGPT while exploring the data and planning: reading the parquet files, joining production to failures, narrowing the research question, and learning how embeddings and a vector store work before choosing the stack.
+- **Hunter** used ChatGPT for data exploration, architecture planning, backend development and debugging. Assistance included reading Parquet datasets, joining production, failure and maintenance records, calculating 30-day production statistics, and generating searchable failure records. ChatGPT also helped explain and implement ChromaDB similarity search, embeddings, FastAPI endpoints, and React–backend communication. Additional support included troubleshooting Python dependencies, Git conflicts, HTTP errors, JSON serialization, and file paths; exploring machine learning alternatives; refining the research question; and researching and formatting supporting references.
+
 - **Ibrahim** used ChatGPT while building the chart logic and the first React screens.
+
 - **Abdalla** used Claude for the search index and its speed, the LangChain answer layer and its tests, the interface redesign including the map, and a first draft of this README.
 
 Much of the code was written with these tools. What was ours: the problem and the research question, what goes into each failure record, which chart questions to support, and checking the output. We ran the code on the real data, read the results against the source rows, and changed what was wrong. That is how the prompt problem above was found.
