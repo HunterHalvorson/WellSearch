@@ -47,6 +47,10 @@ def query_search(request: Search):
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except FileNotFoundError as error:
-        raise HTTPException(status_code=503, detail="Search data is unavailable.") from error
+        print(f"MISSING FILE: {error}", flush=True)
+        raise HTTPException(
+            status_code=503,
+            detail=f"Search data is unavailable: {error}"
+        ) from error
 
     return df.astype(object).where(pd.notna(df), None).to_dict(orient="records")
