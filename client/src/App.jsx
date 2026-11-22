@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { Drill, Star } from 'lucide-react'
+import { Star } from 'lucide-react'
 import { Link, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  Bar, BarChart, CartesianGrid, Legend, Line, LineChart, Rectangle, ReferenceLine,
+  Bar, BarChart, CartesianGrid, Legend, Line, LineChart, Rectangle,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import Search from './components/Search'
 import './App.css'
 
 const cactusLakeQuestion = 'How are the wells in the Cactus Lake area doing?'
-const cactusLakeArea = 'Cactus Lake'
 const savedViewsKey = 'wellsearch.savedViews'
 const dashboardLinkStyle = { color: '#93c5fd' }
 const resultPageStyle = {
@@ -24,105 +23,14 @@ const resultPageStyle = {
 const exampleQuestions = [
   'Where are pump failures most common?',
   'Which operating areas have the most downtime?',
-  'What are the most common causes of rod failure?',
-  'How have equipment failures changed month by month?',
   cactusLakeQuestion,
 ]
 
-const mockPumpFailures = [
-  { area: 'Cactus Lake', failures: 24, fatigue: 9, abrasion: 6, corrosion: 3, otherOrUnknown: 6 },
-  { area: 'Winter', failures: 17, fatigue: 7, abrasion: 4, corrosion: 2, otherOrUnknown: 4 },
-  { area: 'Court', failures: 11, fatigue: 4, abrasion: 3, corrosion: 1, otherOrUnknown: 3 },
-  { area: 'Bodo East', failures: 6, fatigue: 2, abrasion: 1, corrosion: 1, otherOrUnknown: 2 },
-]
-
-const mockDowntime = [
-  { area: 'Court', downtimeHours: 480, affectedWells: 18 },
-  { area: 'Winter', downtimeHours: 360, affectedWells: 14 },
-  { area: 'Cactus Lake', downtimeHours: 290, affectedWells: 12 },
-  { area: 'Bodo East', downtimeHours: 150, affectedWells: 7 },
-]
-
-const mockRodFailureCauses = [
-  { cause: 'Fatigue', failures: 36 },
-  { cause: 'Corrosion', failures: 25 },
-  { cause: 'Load / Excess Stress', failures: 14 },
-  { cause: 'Abrasion', failures: 8 },
-  { cause: 'Other / unknown', failures: 7 },
-]
-
-const mockMonthlyFailures = [
-  { month: 'Jan 2026', rods: 12, pumps: 5, tubing: 3 },
-  { month: 'Feb 2026', rods: 18, pumps: 7, tubing: 4 },
-  { month: 'Mar 2026', rods: 15, pumps: 4, tubing: 6 },
-  { month: 'Apr 2026', rods: 23, pumps: 9, tubing: 5 },
-]
-
-function makeDemoWell(id, { oil, ...well }) {
-  return {
-    ...well,
-    id: `DEMO-CL-${id}`,
-    oilTodayM3: oil[6],
-    oilYesterdayM3: oil[5],
-    productionHistory: oil.map((oilM3, index) => ({ date: `2026-10-${21 + index}`, oilM3 })),
-  }
-}
-
-const mockCactusLakeWells = [
-  makeDemoWell('001', {
-    status: 'producing', x: 1, y: 1, oil: [19, 20, 21, 20, 19, 20, 21],
-    recentAverageOilM3: 20, hoursDown: 0, downtimeReason: null,
-    latestFailure: { description: 'Pump seal wear', date: 'Sep 12, 2026' },
-    latestJob: { description: 'Replaced pump seal', date: 'Sep 13, 2026' },
-  }),
-  makeDemoWell('002', {
-    status: 'producing', x: 3, y: 1, oil: [15, 16, 15, 17, 16, 16, 17],
-    recentAverageOilM3: 16, hoursDown: 0, downtimeReason: null,
-    latestFailure: null,
-    latestJob: { description: 'Routine pump inspection', date: 'Oct 8, 2026' },
-  }),
-  makeDemoWell('003', {
-    status: 'reducedOutput', x: 2, y: 2, oil: [16, 17, 16, 15, 14, 12, 9],
-    recentAverageOilM3: 16, hoursDown: 0, downtimeReason: null,
-    latestFailure: { description: 'Tubing leak', date: 'Aug 21, 2026' },
-    latestJob: { description: 'Replaced tubing section', date: 'Aug 23, 2026' },
-  }),
-  makeDemoWell('004', {
-    status: 'down', x: 4, y: 2, oil: [14, 15, 14, 13, 12, 8, 0],
-    recentAverageOilM3: 14, hoursDown: 24, downtimeReason: 'Shut in after pump trip',
-    latestFailure: { description: 'Pump motor trip', date: 'Oct 26, 2026' },
-    latestJob: { description: 'Electrical inspection', date: 'Oct 27, 2026' },
-  }),
-  makeDemoWell('005', {
-    status: 'producing', x: 1, y: 3, oil: [10, 11, 10, 12, 11, 12, 11],
-    recentAverageOilM3: 11, hoursDown: 0, downtimeReason: null,
-    latestFailure: null,
-    latestJob: { description: 'Lubricated drive assembly', date: 'Oct 12, 2026' },
-  }),
-  makeDemoWell('006', {
-    status: 'down', x: 3, y: 3, oil: [10, 11, 10, 9, 4, 0, 0],
-    recentAverageOilM3: 10, hoursDown: 24, downtimeReason: 'Awaiting replacement rod',
-    latestFailure: { description: 'Rod parted', date: 'Oct 25, 2026' },
-    latestJob: { description: 'Inspected rod string', date: 'Oct 26, 2026' },
-  }),
-  makeDemoWell('007', {
-    status: 'reducedOutput', x: 4, y: 3, oil: [12, 13, 12, 11, 10, 9, 7],
-    recentAverageOilM3: 12, hoursDown: 0, downtimeReason: null,
-    latestFailure: { description: 'Worn pump valve', date: 'Sep 30, 2026' },
-    latestJob: { description: 'Replaced pump valve', date: 'Oct 1, 2026' },
-  }),
-  makeDemoWell('008', {
-    status: 'noData', x: 2, y: 1, oil: [8, 9, null, 8, 9, 8, null],
-    recentAverageOilM3: null, hoursDown: null, downtimeReason: null,
-    latestFailure: null, latestJob: null,
-  }),
-]
-
 const wellStatuses = {
-  producing: { label: 'Producing', color: '#6ee7b7', rule: 'Recorded production, zero downtime, and output at least 75% of the recent average.' },
-  reducedOutput: { label: 'Reduced output', color: '#fcd34d', rule: 'Recorded production, zero downtime, and output below 75% of the recent average.' },
-  down: { label: 'Down', color: '#fda4af', rule: '24 hours of downtime and zero oil output.' },
-  noData: { label: 'No data', color: '#cbd5e1', rule: 'Current production or downtime readings are unavailable.' },
+  producing: { label: 'Producing', color: '#6ee7b7' },
+  reducedOutput: { label: 'Reduced output', color: '#fcd34d' },
+  down: { label: 'Down', color: '#fda4af' },
+  noData: { label: 'No data', color: '#cbd5e1' },
 }
 
 const wellPanelStyle = {
@@ -134,106 +42,6 @@ const wellPanelStyle = {
 }
 const wellGridStyle = { display: 'grid', gap: '12px' }
 
-const pumpCauses = [
-  { key: 'fatigue', name: 'Fatigue', color: '#60a5fa' },
-  { key: 'abrasion', name: 'Abrasion', color: '#34d399' },
-  { key: 'corrosion', name: 'Corrosion', color: '#fbbf24' },
-  { key: 'otherOrUnknown', name: 'Other / unknown', color: '#c4b5fd' },
-]
-
-const pumpFailureObservations = {
-  fatigue: 'Inspection recorded a fatigue crack in a pump component.',
-  abrasion: 'Inspection recorded abrasive wear on the pump barrel.',
-  corrosion: 'Inspection recorded corrosion pitting on the pump assembly.',
-  otherOrUnknown: 'The pump stopped delivering oil. The cause was recorded as undetermined.',
-}
-
-const pumpMaintenanceActions = {
-  fatigue: 'Replaced the cracked component and tested the pump.',
-  abrasion: 'Replaced the worn barrel and flushed the assembly.',
-  corrosion: 'Replaced the pitted components and tested pump operation.',
-  otherOrUnknown: 'Swapped the pump assembly and tested it before restart.',
-}
-
-const earlierPumpFailureDates = [
-  '2025-04-09', '2025-06-18', '2025-08-11', '2025-10-07',
-  '2025-12-02', '2026-02-16', '2026-04-13', '2026-07-20',
-]
-
-function makePumpWell(id, area, { earlierCauses, recentCause, oil, estimatedCostCad }) {
-  const earlierFailures = earlierCauses.map((cause, index) => ({
-    type: 'failure', date: earlierPumpFailureDates[index], cause,
-    description: pumpFailureObservations[cause],
-  }))
-  const events = [
-    ...earlierFailures,
-    { type: 'failure', date: '2026-10-23', cause: recentCause, description: pumpFailureObservations[recentCause] },
-    { type: 'maintenance', date: '2026-10-24', description: pumpMaintenanceActions[recentCause], estimatedCostCad },
-  ]
-  const failures = events.filter((event) => event.type === 'failure')
-  return {
-    id: `DEMO-${id}`,
-    area,
-    failureCount: failures.length,
-    causes: pumpCauses.map(({ key, name }) => ({
-      name, count: failures.filter((event) => event.cause === key).length,
-    })),
-    productionHistory: oil.map((oilM3, index) => ({ date: `2026-10-${21 + index}`, oilM3 })),
-    events,
-  }
-}
-
-const mockPumpWells = [
-  makePumpWell('CL-101', 'Cactus Lake', {
-    earlierCauses: ['fatigue', 'abrasion', 'otherOrUnknown', 'fatigue', 'corrosion', 'abrasion', 'fatigue', 'otherOrUnknown'],
-    recentCause: 'fatigue', oil: [19, 20, 3, 0, 13, 18, 19], estimatedCostCad: 4200,
-  }),
-  makePumpWell('CL-102', 'Cactus Lake', {
-    earlierCauses: ['fatigue', 'abrasion', 'otherOrUnknown', 'corrosion', 'fatigue', 'otherOrUnknown', 'fatigue'],
-    recentCause: 'abrasion', oil: [15, 14, 4, 2, 10, 13, 15], estimatedCostCad: 3500,
-  }),
-  makePumpWell('CL-103', 'Cactus Lake', {
-    earlierCauses: ['abrasion', 'fatigue', 'otherOrUnknown', 'abrasion', 'fatigue', 'otherOrUnknown'],
-    recentCause: 'corrosion', oil: [12, 11, 2, 0, 7, 10, 11], estimatedCostCad: null,
-  }),
-  makePumpWell('WI-101', 'Winter', {
-    earlierCauses: ['fatigue', 'abrasion', 'fatigue', 'corrosion', 'otherOrUnknown', 'abrasion'],
-    recentCause: 'fatigue', oil: [17, 18, 5, 0, 12, 16, 17], estimatedCostCad: 3900,
-  }),
-  makePumpWell('WI-102', 'Winter', {
-    earlierCauses: ['fatigue', 'abrasion', 'otherOrUnknown', 'fatigue'],
-    recentCause: 'corrosion', oil: [14, 14, 3, 1, 10, 12, 14], estimatedCostCad: 2800,
-  }),
-  makePumpWell('WI-103', 'Winter', {
-    earlierCauses: ['fatigue', 'otherOrUnknown', 'abrasion', 'fatigue'],
-    recentCause: 'otherOrUnknown', oil: [10, 9, 0, 0, 5, 8, 9], estimatedCostCad: 5100,
-  }),
-  makePumpWell('CO-101', 'Court', {
-    earlierCauses: ['fatigue', 'otherOrUnknown', 'fatigue'],
-    recentCause: 'abrasion', oil: [13, 13, 3, 2, 8, 11, 12], estimatedCostCad: 3100,
-  }),
-  makePumpWell('CO-102', 'Court', {
-    earlierCauses: ['fatigue', 'otherOrUnknown', 'abrasion'],
-    recentCause: 'corrosion', oil: [16, 15, 1, 0, 9, 13, 15], estimatedCostCad: null,
-  }),
-  makePumpWell('CO-103', 'Court', {
-    earlierCauses: ['otherOrUnknown', 'abrasion'],
-    recentCause: 'fatigue', oil: [9, 10, 2, 0, 6, 8, 9], estimatedCostCad: 2700,
-  }),
-  makePumpWell('BE-101', 'Bodo East', {
-    earlierCauses: ['fatigue'],
-    recentCause: 'otherOrUnknown', oil: [8, 8, 0, 1, 4, 6, 8], estimatedCostCad: 4600,
-  }),
-  makePumpWell('BE-102', 'Bodo East', {
-    earlierCauses: ['abrasion'],
-    recentCause: 'fatigue', oil: [11, 10, 2, 0, 6, 9, 10], estimatedCostCad: 3300,
-  }),
-  makePumpWell('BE-103', 'Bodo East', {
-    earlierCauses: ['otherOrUnknown'],
-    recentCause: 'corrosion', oil: [7, 7, 1, 0, 4, 6, 7], estimatedCostCad: null,
-  }),
-]
-
 const pumpControlStyle = {
   backgroundColor: '#0b1120',
   color: '#f1f5f9',
@@ -242,14 +50,6 @@ const pumpControlStyle = {
   padding: '8px 10px',
   font: 'inherit',
 }
-const pumpEventTypes = {
-  failure: { label: 'Failure', color: '#fda4af', dash: '4 3' },
-  maintenance: { label: 'Maintenance', color: '#6ee7b7', dash: '8 3' },
-}
-const maintenanceCost = new Intl.NumberFormat('en-CA', {
-  style: 'currency', currency: 'CAD', maximumFractionDigits: 0,
-})
-
 const axisTick = { fill: '#cbd5e1', fontSize: 12 }
 const tooltipStyle = {
   backgroundColor: '#0b1120',
@@ -261,7 +61,7 @@ const tooltipStyle = {
 const chartMargin = { top: 12, right: 16, bottom: 12, left: 0 }
 const failureAxisLabel = { value: 'Failures', angle: -90, position: 'insideLeft', fill: axisTick.fill }
 
-function ChartFrame({ title, children, compact }) {
+function ChartFrame({ title, scope, children, compact, height = 370, note, emptyMessage }) {
   return (
     <section aria-label={title} style={{
       width: '100%',
@@ -272,61 +72,62 @@ function ChartFrame({ title, children, compact }) {
       borderRadius: '12px',
     }}>
       <h2 style={{ fontSize: '1.125rem', marginBottom: '8px' }}>{title}</h2>
-      <div style={{ height: compact ? '210px' : '370px', minWidth: 0 }}>
-        <ResponsiveContainer width='100%' height='100%'>{children}</ResponsiveContainer>
+      {scope && <p style={{ color: '#cbd5e1' }}>{scope}</p>}
+      {note && <p style={{ color: '#cbd5e1' }}>{note}</p>}
+      <div style={{ maxHeight: compact ? 210 : 530, overflowY: height > 530 ? 'auto' : undefined }}>
+        {emptyMessage ? (
+          <div role='status' style={{
+            height: compact ? 150 : 250, display: 'grid', placeItems: 'center',
+            border: '1px solid #334155', marginTop: '12px', color: '#cbd5e1',
+          }}>
+            {emptyMessage}
+          </div>
+        ) : (
+          <div style={{ height: compact ? 210 : height, minWidth: 0 }}>
+            <ResponsiveContainer width='100%' height='100%'>{children}</ResponsiveContainer>
+          </div>
+        )}
       </div>
     </section>
   )
 }
 
-function PumpFailuresTooltip({ active, payload }) {
+function FailureBreakdownTooltip({ active, payload, series }) {
   const row = payload?.[0]?.payload
   if (!active || !row) return null
 
   return (
     <div style={tooltipStyle}>
       <strong>{row.area}</strong>
-      {pumpCauses.map(({ key, name }) => <div key={key}>{name}: {row[key]}</div>)}
+      {series.filter(({ key }) => row[key] > 0).map(({ key, name }) => <div key={key}>{name}: {row[key]}</div>)}
       <div>Total failures: {row.failures}</div>
     </div>
   )
 }
 
-function DowntimeTooltip({ active, payload }) {
-  const row = payload?.[0]?.payload
-  if (!active || !row) return null
+const seriesColors = ['#60a5fa', '#34d399', '#fbbf24', '#c4b5fd', '#fda4af', '#67e8f9']
 
+function FailureBreakdownChart({ data, title, scope, series, onSelectArea, compact }) {
   return (
-    <div style={tooltipStyle}>
-      <strong>{row.area}</strong>
-      <div>Downtime: {row.downtimeHours} hours</div>
-      <div>Affected wells: {row.affectedWells}</div>
-    </div>
-  )
-}
-
-function PumpFailuresChart({ data, selectedArea, onSelectArea, compact }) {
-  return (
-    <ChartFrame title='Pump failures by operating area' compact={compact}>
+    <ChartFrame title={title} scope={scope} compact={compact}>
       <BarChart data={data} margin={chartMargin}>
         <CartesianGrid stroke='#475569' strokeDasharray='3 3' vertical={false} />
         <XAxis dataKey='area' tick={axisTick} minTickGap={4} />
         <YAxis allowDecimals={false} width={48} tick={axisTick} label={failureAxisLabel} />
-        <Tooltip content={<PumpFailuresTooltip />} cursor={{ fill: '#94a3b8', fillOpacity: 0.12 }} />
+        <Tooltip content={<FailureBreakdownTooltip series={series} />} cursor={{ fill: '#94a3b8', fillOpacity: 0.12 }} />
         <Legend />
-        {pumpCauses.map(({ key, name, color }) => (
+        {series.map(({ key, name }, index) => (
           <Bar
             key={key}
             dataKey={key}
             name={name}
-            fill={color}
+            fill={seriesColors[index] ?? `hsl(${index * 137.5 % 360} 64% 66%)`}
             stackId='causes'
             isAnimationActive={false}
             onClick={onSelectArea ? ({ payload }) => onSelectArea(payload.area) : undefined}
             shape={(props) => (
               <Rectangle
                 {...props}
-                fillOpacity={selectedArea && props.payload.area !== selectedArea ? 0.4 : 1}
                 style={{ cursor: onSelectArea ? 'pointer' : undefined }}
               />
             )}
@@ -337,67 +138,47 @@ function PumpFailuresChart({ data, selectedArea, onSelectArea, compact }) {
   )
 }
 
-function DowntimeChart({ data, compact }) {
+function RankingChart({ data, title, scope, unit, compact, onSelectArea, note }) {
   return (
-    <ChartFrame title='Downtime by operating area' compact={compact}>
-      <BarChart data={data} layout='vertical' margin={chartMargin}>
+    <ChartFrame title={title} scope={scope} compact={compact} note={note} height={Math.max(260, data.length * 26 + 85)}>
+      <BarChart data={data} layout='vertical' margin={{ ...chartMargin, bottom: 24 }}>
         <CartesianGrid stroke='#475569' strokeDasharray='3 3' horizontal={false} />
         <XAxis
           type='number'
-          allowDecimals={false}
+          allowDecimals={unit !== 'Failures'}
           tick={axisTick}
-          label={{ value: 'Downtime (hours)', position: 'insideBottom', offset: -6, fill: axisTick.fill }}
+          label={{ value: unit, position: 'insideBottom', offset: -8, fill: axisTick.fill }}
         />
-        <YAxis type='category' dataKey='area' width={84} tick={axisTick} />
-        <Tooltip content={<DowntimeTooltip />} cursor={{ fill: '#94a3b8', fillOpacity: 0.12 }} />
-        <Bar dataKey='downtimeHours' name='Downtime (hours)' fill='#38bdf8' maxBarSize={40} />
-      </BarChart>
-    </ChartFrame>
-  )
-}
-
-function RodFailureCausesChart({ data, compact }) {
-  return (
-    <ChartFrame title='Recorded rod failure causes' compact={compact}>
-      <BarChart data={data} layout='vertical' margin={chartMargin}>
-        <CartesianGrid stroke='#475569' strokeDasharray='3 3' horizontal={false} />
-        <XAxis
-          type='number'
-          allowDecimals={false}
-          tick={axisTick}
-          label={{ value: 'Failures', position: 'insideBottom', offset: -6, fill: axisTick.fill }}
-        />
-        <YAxis type='category' dataKey='cause' width={132} tick={axisTick} />
+        <YAxis type='category' dataKey='label' width={compact ? 92 : 186} tick={axisTick} interval={compact ? undefined : 0} />
         <Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#94a3b8', fillOpacity: 0.12 }} />
-        <Bar dataKey='failures' name='Failures' fill='#c4b5fd' maxBarSize={40} />
+        <Legend />
+        <Bar
+          dataKey='value'
+          name={unit}
+          fill='#38bdf8'
+          maxBarSize={40}
+          isAnimationActive={false}
+          onClick={onSelectArea ? ({ payload }) => onSelectArea(payload.label) : undefined}
+          style={onSelectArea ? { cursor: 'pointer' } : undefined}
+        />
       </BarChart>
     </ChartFrame>
   )
 }
 
-function MonthlyFailuresChart({ data, compact }) {
+function MonthlyFailuresChart({ data, title, scope, compact, note }) {
   return (
-    <ChartFrame title='Monthly equipment failures' compact={compact}>
+    <ChartFrame title={title} scope={scope} compact={compact} note={note}>
       <LineChart data={data} margin={chartMargin}>
         <CartesianGrid stroke='#475569' strokeDasharray='3 3' />
         <XAxis dataKey='month' tick={axisTick} minTickGap={4} padding={{ left: 12, right: 16 }} />
-        <YAxis allowDecimals={false} width={48} tick={axisTick} label={failureAxisLabel} />
+        <YAxis domain={note ? [0, 1] : undefined} allowDecimals={false} width={48} tick={axisTick} label={failureAxisLabel} />
         <Tooltip contentStyle={tooltipStyle} />
         <Legend />
-        <Line type='linear' dataKey='rods' name='Rods' stroke='#60a5fa' strokeWidth={2} />
-        <Line type='linear' dataKey='pumps' name='Pumps' stroke='#34d399' strokeWidth={2} />
-        <Line type='linear' dataKey='tubing' name='Tubing' stroke='#fbbf24' strokeWidth={2} />
+        <Line type='linear' dataKey='failures' name='Failures' stroke='#60a5fa' strokeWidth={2} isAnimationActive={false} />
       </LineChart>
     </ChartFrame>
   )
-}
-
-function largestRow(data, valueOf) {
-  return data.reduce((largest, row) => valueOf(row) > valueOf(largest) ? row : largest)
-}
-
-function monthlyTotal({ rods, pumps, tubing }) {
-  return rods + pumps + tubing
 }
 
 function measurement(value, unit) {
@@ -418,20 +199,20 @@ function WellSummaryCards({ wells, producing, down }) {
       ? 'The comparable wells recorded 0 m³ yesterday.'
       : `${comparable.length} of ${wells.length} wells have readings on both days.`
   const cards = [
-    { label: 'Total example wells', value: wells.length },
+    { label: 'Wells with recent records', value: wells.length },
     { label: 'Wells producing', value: producing, note: 'Includes wells with reduced output.' },
     { label: 'Wells down', value: down },
     {
-      label: 'Recorded oil output today',
+      label: 'Recorded oil output on snapshot date',
       value: measurement(recordedToday.length ? totalToday : null, 'm³'),
       note: `${recordedToday.length} of ${wells.length} wells have a reading.`,
     },
-    { label: 'Change from yesterday', value: changeLabel, note: comparisonNote },
+    { label: 'Change from previous day', value: changeLabel, note: comparisonNote },
   ]
 
   return (
     <section aria-labelledby='well-summary-heading' style={wellGridStyle}>
-      <h3 id='well-summary-heading'>Summary for the {wells.length} example wells</h3>
+      <h3 id='well-summary-heading'>Area summary</h3>
       <dl style={{ ...wellGridStyle, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))' }}>
         {cards.map(({ label, value, note }) => (
           <div key={label} style={wellPanelStyle}>
@@ -445,114 +226,16 @@ function WellSummaryCards({ wells, producing, down }) {
   )
 }
 
-function WellLayout({ wells, selectedId, onSelect }) {
-  const layoutOrder = [...wells].sort((first, second) => first.y - second.y || first.x - second.x)
-
-  return (
-    <section aria-labelledby='well-layout-heading' style={{ ...wellPanelStyle, ...wellGridStyle }}>
-      <style>{`
-        .cactus-well-layout {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 12px;
-        }
-        .cactus-well-button:focus-visible {
-          outline: 2px solid #f8fafc;
-          outline-offset: 3px;
-        }
-        .cactus-well-pulse {
-          border-radius: 50%;
-          animation: cactus-well-pulse 2.6s ease-out infinite;
-        }
-        @keyframes cactus-well-pulse {
-          0% { box-shadow: 0 0 0 0 rgb(253 164 175 / 45%); }
-          75%, 100% { box-shadow: 0 0 0 7px rgb(253 164 175 / 0%); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .cactus-well-pulse { animation: none; }
-        }
-        @media (max-width: 680px) {
-          .cactus-well-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .cactus-well-layout > .cactus-well-button { grid-area: auto !important; }
-        }
-      `}</style>
-      <h3 id='well-layout-heading'>Illustrative well layout</h3>
-      <p style={{ color: '#cbd5e1' }}>Positions are schematic. Select a well to view its readings and history.</p>
-      <ul aria-label='Well status legend' style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', listStyle: 'none' }}>
-        {Object.values(wellStatuses).map(({ label, color }) => (
-          <li key={label}><span aria-hidden='true' style={{ color }}>● </span>{label}</li>
-        ))}
-      </ul>
-      <div className='cactus-well-layout'>
-        {layoutOrder.map((well) => {
-          const { color, label } = wellStatuses[well.status]
-          const selected = selectedId === well.id
-
-          return (
-            <button
-              key={well.id}
-              type='button'
-              className='cactus-well-button'
-              aria-label={`${well.id}, ${label}`}
-              aria-pressed={selected}
-              aria-controls='selected-well-details'
-              onClick={() => onSelect(well.id)}
-              style={{
-                gridArea: `${well.y} / ${well.x}`,
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '6px 10px',
-                padding: '10px',
-                minWidth: 0,
-                border: `2px solid ${selected ? '#93c5fd' : '#64748b'}`,
-                borderRadius: '8px',
-                backgroundColor: selected ? '#233b59' : '#0b1120',
-                color: '#f1f5f9',
-                textAlign: 'left',
-                cursor: 'pointer',
-              }}
-            >
-              <span
-                className={well.status === 'down' ? 'cactus-well-pulse' : undefined}
-                style={{ display: 'inline-flex', padding: '4px', color }}
-              >
-                <Drill aria-hidden='true' size={20} />
-              </span>
-              <span style={{ overflowWrap: 'anywhere' }}>
-                <strong>{well.id}</strong>
-                <span style={{ display: 'block', color }}>{label}</span>
-              </span>
-            </button>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
 function productionDate(date) {
-  return `Oct ${date.slice(-2)}`
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
 
-function WellProductionChart({ data, events = [], compact }) {
+function WellProductionChart({ data, compact }) {
   const missingDates = data.filter(({ oilM3 }) => oilM3 == null).map(({ date }) => productionDate(date))
-  const chartEvents = events.filter((event) => data.some(({ date }) => date === event.date))
-
   return (
     <div style={wellGridStyle}>
       <h4>Seven-day oil production (m³)</h4>
       {missingDates.length > 0 && <p>No reading for {missingDates.join(', ')}.</p>}
-      {chartEvents.length > 0 && (
-        <ul aria-label='Production chart markers' style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', listStyle: 'none' }}>
-          {chartEvents.map(({ date, type }) => (
-            <li key={`${date}-${type}`}>
-              <span aria-hidden='true' style={{ color: pumpEventTypes[type].color }}>│ </span>
-              {pumpEventTypes[type].label} · <time dateTime={date}>{productionDate(date)}</time>
-            </li>
-          ))}
-        </ul>
-      )}
       <div style={{ height: compact ? '150px' : '250px', minWidth: 0 }}>
         <ResponsiveContainer width='100%' height='100%'>
           <LineChart data={data} margin={{ top: 10, right: 18, bottom: 0, left: 0 }}>
@@ -566,15 +249,6 @@ function WellProductionChart({ data, events = [], compact }) {
               formatter={(value) => [measurement(value, 'm³'), 'Oil']}
             />
             <Line type='linear' dataKey='oilM3' stroke='#60a5fa' strokeWidth={2} connectNulls={false} isAnimationActive={false} />
-            {chartEvents.map(({ date, type }) => (
-              <ReferenceLine
-                key={`${date}-${type}`}
-                x={date}
-                stroke={pumpEventTypes[type].color}
-                strokeWidth={2}
-                strokeDasharray={pumpEventTypes[type].dash}
-              />
-            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -582,34 +256,57 @@ function WellProductionChart({ data, events = [], compact }) {
   )
 }
 
-function PumpWellTable({ area, wells, selectedWell, onViewWell }) {
+function WellRecords({ wells, metric, selectedWell, onViewWell }) {
+  const [ascending, setAscending] = useState(false)
+  const [filter, setFilter] = useState('')
+  const term = filter.trim().toLowerCase()
+  const filtered = wells.filter(({ id, causes }) =>
+    id.toLowerCase().includes(term) || causes?.some(({ name }) => name.toLowerCase().includes(term))
+  ).sort((first, second) => {
+    if (!Number.isFinite(first.value)) return Number.isFinite(second.value) ? 1 : first.id.localeCompare(second.id)
+    if (!Number.isFinite(second.value)) return -1
+    return (ascending ? first.value - second.value : second.value - first.value) || first.id.localeCompare(second.id)
+  })
   const cellStyle = { padding: '10px 8px', borderBottom: '1px solid #475569', textAlign: 'left' }
 
   return (
-    <section aria-labelledby='pump-area-heading' style={{ ...wellPanelStyle, ...wellGridStyle }}>
-      <h3 id='pump-area-heading'>{area.area}</h3>
-      <p>{area.failures} total recorded mock pump failures</p>
-      <div role='region' aria-label='Affected wells table' tabIndex={0} style={{ overflowX: 'auto' }}>
+    <section aria-labelledby='well-records-heading' style={{ ...wellPanelStyle, ...wellGridStyle }}>
+      <h3 id='well-records-heading'>Well records</h3>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+        <label style={{ display: 'grid', gap: '4px' }}>
+          Sort wells
+          <select value={ascending ? 'asc' : 'desc'} onChange={(event) => setAscending(event.target.value === 'asc')} style={pumpControlStyle}>
+            <option value='desc'>{metric.descending}</option>
+            <option value='asc'>{metric.ascending}</option>
+          </select>
+        </label>
+        <label style={{ display: 'grid', gap: '4px' }}>
+          {metric.causes ? 'Filter wells by ID or recorded cause' : 'Filter wells by ID'}
+          <input type='search' value={filter} onChange={(event) => setFilter(event.target.value)} style={pumpControlStyle} />
+        </label>
+      </div>
+      <p role='status'>Showing {filtered.length} of {wells.length} wells. The filter applies to the list below.</p>
+      {filtered.length > 0 && <div role='region' aria-label='Affected wells table' tabIndex={0} style={{ overflowX: 'auto' }}>
         <table aria-label='Affected wells' style={{ width: '100%', minWidth: '420px', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              {['Well ID', 'Pump failures', 'Most common recorded cause', 'Details'].map((label) => (
+              {['Well ID', metric.unit, ...(metric.causes ? ['Most common recorded cause'] : []), ...(onViewWell ? ['Details'] : [])].map((label) => (
                 <th key={label} scope='col' style={cellStyle}>{label}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {wells.map((well) => {
-              const highest = largestRow(well.causes, (cause) => cause.count)
-              const topCauses = well.causes.filter(({ count }) => count === highest.count).map(({ name }) => name)
+            {filtered.map((well) => {
+              const highest = Math.max(...(well.causes ?? []).map(({ count }) => count))
+              const topCauses = well.causes?.filter(({ count }) => count === highest).map(({ name }) => name) ?? []
               const isOpen = selectedWell?.id === well.id
 
               return (
                 <tr key={well.id}>
                   <th scope='row' style={cellStyle}>{well.id}</th>
-                  <td style={cellStyle}>{well.failureCount}</td>
-                  <td style={cellStyle}>{topCauses.join(', ')}{topCauses.length > 1 && ' (tie)'}</td>
-                  <td style={cellStyle}>
+                  <td style={cellStyle}>{well.value ?? 'Unavailable'}</td>
+                  {metric.causes && <td style={cellStyle}>{topCauses.join(', ') || 'Unavailable'}{topCauses.length > 1 && ' (tie)'}</td>}
+                  {onViewWell && <td style={cellStyle}>
                     <button
                       type='button'
                       aria-label={`View well ${well.id}`}
@@ -620,18 +317,18 @@ function PumpWellTable({ area, wells, selectedWell, onViewWell }) {
                     >
                       View well
                     </button>
-                  </td>
+                  </td>}
                 </tr>
               )
             })}
           </tbody>
         </table>
-      </div>
+      </div>}
     </section>
   )
 }
 
-function PumpWellDetails({ well, onClose }) {
+function FailureWellDetails({ well, onClose }) {
   const heading = useRef(null)
 
   useEffect(() => {
@@ -645,26 +342,20 @@ function PumpWellDetails({ well, onClose }) {
       <button type='button' onClick={onClose} style={{ ...pumpControlStyle, justifySelf: 'start', cursor: 'pointer' }}>
         Close well details
       </button>
-      <p>{well.failureCount} recorded pump failures</p>
+      <p>{well.failureCount} recorded failures</p>
       <h4>Recorded cause breakdown</h4>
       <dl style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
         {well.causes.map(({ name, count }) => (
           <div key={name}><dt>{name}</dt><dd>{count}</dd></div>
         ))}
       </dl>
-      <WellProductionChart data={well.productionHistory} events={well.events} />
-      <h4>Recorded failure and maintenance history</h4>
+      {well.productionHistory.length > 0 && <WellProductionChart data={well.productionHistory} />}
+      <h4>Recorded failures</h4>
       <ol style={{ ...wellGridStyle, paddingLeft: '24px' }}>
-        {well.events.map((event) => (
-          <li key={`${event.date}-${event.type}`}>
-            <strong><time dateTime={event.date}>{event.date}</time> · {pumpEventTypes[event.type].label}</strong>
-            {event.cause && <> · {pumpCauses.find(({ key }) => key === event.cause).name}</>}
-            <p>{event.description}</p>
-            {event.type === 'maintenance' && (
-              <p>Field-estimated maintenance cost: {event.estimatedCostCad == null
-                ? 'No estimate recorded'
-                : `${maintenanceCost.format(event.estimatedCostCad)} CAD`}</p>
-            )}
+        {well.events.map((event, index) => (
+          <li key={index}>
+            <strong>{event.date || 'Date unavailable'} · {event.cause}</strong>
+            {event.description && <p>{event.description}</p>}
           </li>
         ))}
       </ol>
@@ -672,74 +363,107 @@ function PumpWellDetails({ well, onClose }) {
   )
 }
 
-function PumpFailureDrillDown({ data, wells, selectedArea, selectedWell, onSelectionChange }) {
+function operatingAreas(result) {
+  if (result?.type === 'area_breakdown') return result.rows.map(({ area }) => area)
+  return Object.keys(result?.groups ?? {})
+}
+
+function areaFocus(result, area) {
+  const scope = result.period ?? result.scope
+  if (result.type === 'area_breakdown') {
+    const totals = result.rows.find((row) => row.area === area)
+    return {
+      title: `Recorded failure causes in ${area}`,
+      scope,
+      note: `${totals.failures.toLocaleString()} recorded failures`,
+      data: result.series.map(({ name, key }) => ({ label: name, value: totals[key] }))
+        .filter(({ value }) => value > 0).sort((first, second) => second.value - first.value),
+      wells: result.wells.filter((well) => well.area === area).map((well) => ({ ...well, value: well.failureCount })),
+      metric: { unit: 'Failures', descending: 'Most failures first', ascending: 'Fewest failures first', causes: true },
+    }
+  }
+
+  const wells = result.groups[area]
+  const total = result.rows.find(({ label }) => label === area).value
+  return {
+    title: `Downtime by well in ${area}`,
+    scope,
+    note: `${total.toLocaleString()} recorded downtime hours`,
+    data: wells.filter(({ value }) => Number.isFinite(value))
+      .map(({ id, value }) => ({ label: id, value })).sort((first, second) => second.value - first.value),
+    wells,
+    metric: { unit: result.unit, descending: 'Most downtime first', ascending: 'Least downtime first' },
+  }
+}
+
+function GroupedChart({ result, selection, onSelectionChange, compact }) {
   const viewButton = useRef(null)
   const areaSelect = useRef(null)
-  const area = data.find((row) => row.area === selectedArea)
-  const highest = largestRow(data, (row) => row.failures)
+  const { area, well: selectedWell } = selection
+  const areas = operatingAreas(result)
+  const focused = area ? areaFocus(result, area) : null
 
   function selectArea(nextArea) {
-    if (nextArea === selectedArea) return
+    if (nextArea === area) return
     viewButton.current = null
     onSelectionChange(nextArea)
   }
 
   function closeWell() {
-    onSelectionChange(selectedArea)
+    onSelectionChange(area)
     const focusTarget = viewButton.current?.isConnected ? viewButton.current : areaSelect.current
     focusTarget?.focus()
   }
 
+  const Overview = result.type === 'area_breakdown' ? FailureBreakdownChart : RankingChart
+  let chart = <Overview data={result.rows} title={result.title} scope={result.scope} series={result.series}
+    unit={result.unit} onSelectArea={onSelectionChange ? selectArea : undefined} compact={compact} />
+  if (focused) {
+    const { data, title, scope, note, metric } = focused
+    chart = data.length
+      ? <RankingChart data={data} title={title} scope={scope} note={note} unit={metric.unit} compact={compact} />
+      : <ChartFrame title={title} scope={scope} emptyMessage='No data for this period.' compact={compact} />
+  }
+  if (!onSelectionChange) return chart
+
   return (
-    <section aria-label='Pump failure drill-down' style={{ ...wellGridStyle, textAlign: 'left', width: '100%', maxWidth: '900px' }}>
-      <style>{`
-        .pump-drill-down :is(button, select, [tabindex="0"]):focus-visible {
-          outline: 2px solid #f8fafc;
-          outline-offset: 2px;
-        }
-      `}</style>
-      <p><strong>Demo data — fictional wells and readings</strong></p>
-      <PumpFailuresChart data={data} selectedArea={selectedArea} onSelectArea={selectArea} />
-      <p>{highest.area} had the most mock pump failures, with {highest.failures} recorded.</p>
-      <div className='pump-drill-down' style={wellGridStyle}>
-        {!area && <p>Select an operating area using a bar segment or the dropdown to see its affected wells.</p>}
-        <label style={{ justifySelf: 'start', display: 'grid', gap: '4px' }}>
+    <section aria-label='Operating area drill-down' style={{ ...wellGridStyle, textAlign: 'left', width: '100%', maxWidth: '900px' }}>
+      {chart}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'end' }}>
+        <label style={{ display: 'grid', gap: '4px' }}>
           Operating area
-          <select ref={areaSelect} value={selectedArea ?? ''} onChange={(event) => selectArea(event.target.value)} style={pumpControlStyle}>
-            <option value=''>Select an operating area</option>
-            {data.map(({ area }) => <option key={area}>{area}</option>)}
+          <select ref={areaSelect} value={area ?? ''} onChange={(event) => selectArea(event.target.value)} style={pumpControlStyle}>
+            <option value=''>All operating areas</option>
+            {areas.map((name) => <option key={name}>{name}</option>)}
           </select>
         </label>
         {area && (
-          <PumpWellTable
-            area={area}
-            wells={wells.filter((well) => well.area === selectedArea)}
-            selectedWell={selectedWell}
-            onViewWell={(well, button) => {
-              viewButton.current = button
-              onSelectionChange(selectedArea, well.id)
-            }}
-          />
+          <button type='button' style={pumpControlStyle} onClick={() => {
+            selectArea('')
+            areaSelect.current?.focus()
+          }}>Back to all areas</button>
         )}
-        {selectedWell && <PumpWellDetails well={selectedWell} onClose={closeWell} />}
       </div>
+      {focused?.wells.length > 0 && (
+        <WellRecords key={area} wells={focused.wells} metric={focused.metric} selectedWell={selectedWell}
+          onViewWell={focused.metric.causes ? (well, button) => {
+            viewButton.current = button
+            onSelectionChange(area, well.id)
+          } : undefined}
+        />
+      )}
+      {selectedWell && <FailureWellDetails well={selectedWell} onClose={closeWell} />}
     </section>
   )
-}
-
-function wellEvent(event) {
-  return event ? `${event.description} (${event.date})` : 'No recorded entry'
 }
 
 function SelectedWellDetails({ well }) {
   const { color, label } = wellStatuses[well.status]
   const details = [
-    ['Oil output today', measurement(well.oilTodayM3, 'm³')],
+    ['Oil output on snapshot date', measurement(well.oilTodayM3, 'm³')],
     ['Recent average oil output', measurement(well.recentAverageOilM3, 'm³')],
-    ['Downtime today', measurement(well.hoursDown, 'hours')],
+    ['Downtime on snapshot date', measurement(well.hoursDown, 'hours')],
     ['Recorded downtime reason', well.downtimeReason ?? 'No recorded reason'],
-    ['Latest recorded failure', wellEvent(well.latestFailure)],
-    ['Latest maintenance job', wellEvent(well.latestJob)],
   ]
 
   return (
@@ -753,7 +477,6 @@ function SelectedWellDetails({ well }) {
           </div>
         ))}
       </dl>
-      <p style={{ color: '#cbd5e1' }}>Failure and maintenance entries provide historical context. Current status uses the snapshot’s production and downtime readings.</p>
       <WellProductionChart data={well.productionHistory} />
     </section>
   )
@@ -765,29 +488,29 @@ function countWellStatuses(wells) {
   return counts
 }
 
-function CactusLakeOverview({ wells, selectedWell, onSelectWell }) {
-  const counts = countWellStatuses(wells)
-
+function AreaOverview({ data, title, scope, selectedWell, onSelectionChange, area, compact }) {
+  const counts = countWellStatuses(data)
   return (
-    <section aria-labelledby='cactus-lake-heading' style={{ ...wellGridStyle, maxWidth: '900px', width: '100%', textAlign: 'left' }}>
+    <section aria-label={title} style={{ ...wellGridStyle, maxWidth: '900px', width: '100%', textAlign: 'left' }}>
       <header style={wellGridStyle}>
-        <h2 id='cactus-lake-heading'>Cactus Lake well status</h2>
-        <p><strong>Demo data — fictional wells and readings</strong></p>
-        <p><strong>As of <time dateTime='2026-10-27'>October 27, 2026</time></strong></p>
-        <p>{counts.producing} wells are producing at or above the demo threshold, {counts.reducedOutput} show reduced output, {counts.down} are down, and {counts.noData} has missing data.</p>
+        <h2>{title}</h2>
+        <p>{scope}</p>
       </header>
-      <WellSummaryCards wells={wells} producing={counts.producing + counts.reducedOutput} down={counts.down} />
-      <WellLayout wells={wells} selectedId={selectedWell.id} onSelect={onSelectWell} />
-      <SelectedWellDetails well={selectedWell} />
-      <section aria-labelledby='well-rules-heading' style={{ ...wellPanelStyle, ...wellGridStyle }}>
-        <h3 id='well-rules-heading'>Demo status definitions</h3>
-        <p>The 75% threshold is an illustrative demo assumption.</p>
-        <ul style={{ paddingLeft: '20px', lineHeight: 1.5 }}>
-          {Object.values(wellStatuses).map(({ label, rule }) => (
-            <li key={label}><strong>{label}.</strong> {rule}</li>
-          ))}
-        </ul>
-      </section>
+      {compact ? (
+        <WellProductionChart data={selectedWell.productionHistory} compact />
+      ) : (
+        <>
+          <WellSummaryCards wells={data} producing={counts.producing + counts.reducedOutput} down={counts.down} />
+          <label style={{ ...wellGridStyle, justifySelf: 'start' }}>
+            Well
+            <select value={selectedWell.id} onChange={(event) => onSelectionChange(area, event.target.value)} style={pumpControlStyle}>
+              {data.map(({ id, status }) => <option key={id} value={id}>{id} · {wellStatuses[status].label}</option>)}
+            </select>
+          </label>
+          <SelectedWellDetails well={selectedWell} />
+          <p>Down indicates 24 recorded downtime hours. Reduced output indicates nonpositive oil output or less than 75% of the recorded average over the previous 30 days. Status is unavailable when either daily reading is missing.</p>
+        </>
+      )}
     </section>
   )
 }
@@ -856,15 +579,93 @@ function Home({ savedViews, onToggleView }) {
   )
 }
 
+function useSearchResult(question) {
+  const [state, setState] = useState({})
+
+  useEffect(() => {
+    if (!question) return
+    const controller = new AbortController()
+    const { signal } = controller
+    // Let React's development effect replay clean up before starting the request.
+    const start = setTimeout(async () => {
+      try {
+        const response = await fetch('http://localhost:8000/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: question, view: 'chart' }),
+          signal,
+        })
+        if (!response.ok) throw new Error(`Search failed (${response.status})`)
+        const result = await response.json()
+        if (!result?.type) throw new Error('Missing search result type')
+        if (!signal.aborted) setState({ question, result })
+      } catch {
+        if (!signal.aborted) setState({ question, failed: true })
+      }
+    }, 0)
+    return () => {
+      clearTimeout(start)
+      controller.abort()
+    }
+  }, [question])
+
+  return state.question === question ? state : {}
+}
+
+const searchCharts = {
+  ranking: RankingChart,
+  monthly: MonthlyFailuresChart,
+  area_status: AreaOverview,
+}
+
+function resolveViewSelection(result, area, wellId) {
+  if (result?.type === 'area_breakdown') {
+    const well = result.wells.find((row) => row.id === wellId && (!area || row.area === area))
+    return { area: well?.area ?? result.rows.find((row) => row.area === area)?.area, well }
+  }
+  if (result?.type === 'area_status') {
+    const well = result.rows.find((row) => row.id === wellId)
+      ?? result.rows.find((row) => row.status === 'down') ?? result.rows[0]
+    return { area: result.area, well }
+  }
+  if (operatingAreas(result).includes(area)) return { area }
+  return {}
+}
+
+function SearchVisualization({ result, failed, selection, onSelectionChange, compact }) {
+  if (failed) return <p role='alert'>Could not load this result. Try again or search for “Downtime by operating area”.</p>
+  if (!result) return <p role='status'>Loading search result…</p>
+  if (result.type === 'message') return <p role='status'>{result.message}</p>
+  if (!result.rows?.length) {
+    return <ChartFrame title={result.title} scope={result.scope} compact={compact}
+      emptyMessage={result.emptyMessage ?? 'No data for this period.'} />
+  }
+  if (operatingAreas(result).length) {
+    return <GroupedChart result={result} selection={selection} onSelectionChange={onSelectionChange} compact={compact} />
+  }
+  const Chart = searchCharts[result.type]
+  if (!Chart) return <p role='alert'>This result has an unsupported chart type.</p>
+  return (
+    <Chart
+      data={result.rows}
+      title={result.title}
+      scope={result.scope}
+      unit={result.unit}
+      note={result.note}
+      area={selection.area}
+      selectedWell={selection.well}
+      onSelectionChange={onSelectionChange}
+      compact={compact}
+    />
+  )
+}
+
 function Results({ savedViews, onToggleView }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const question = searchParams.get('q')?.trim()
-  const exampleIndex = questionIndex(question)
-  const { area, well } = resolveViewSelection(exampleIndex, searchParams.get('area'), searchParams.get('well'))
-  const cactusWell = exampleIndex === 4 ? well ?? mockCactusLakeWells.find(({ status }) => status === 'down') : null
-  const currentView = { question, area: cactusWell ? cactusLakeArea : area, wellId: (cactusWell ?? well)?.id }
-  let chart
-  let explanation
+  const { result, failed } = useSearchResult(question)
+  const selection = resolveViewSelection(result, searchParams.get('area'), searchParams.get('well'))
+  const currentView = { question, area: searchParams.get('area'), wellId: searchParams.get('well') }
 
   function updateSelection(nextArea, wellId) {
     const params = new URLSearchParams(searchParams)
@@ -875,27 +676,6 @@ function Results({ savedViews, onToggleView }) {
     setSearchParams(params, { replace: true })
   }
 
-  switch (exampleIndex) {
-    case 1: {
-      const highest = largestRow(mockDowntime, (row) => row.downtimeHours)
-      chart = <DowntimeChart data={mockDowntime} />
-      explanation = `${highest.area} had the most mock downtime, at ${highest.downtimeHours} hours.`
-      break
-    }
-    case 2: {
-      const highest = largestRow(mockRodFailureCauses, (row) => row.failures)
-      chart = <RodFailureCausesChart data={mockRodFailureCauses} />
-      explanation = `${highest.cause} was the most frequent recorded cause in the mock data, with ${highest.failures} rod failures.`
-      break
-    }
-    case 3: {
-      const highest = largestRow(mockMonthlyFailures, monthlyTotal)
-      chart = <MonthlyFailuresChart data={mockMonthlyFailures} />
-      explanation = `${highest.month} had the most mock failures across rods, pumps, and tubing, with ${monthlyTotal(highest)} combined.`
-      break
-    }
-  }
-
   return (
     <main className='App' style={resultPageStyle}>
       <h1>Search results</h1>
@@ -904,51 +684,10 @@ function Results({ savedViews, onToggleView }) {
         <p style={{ overflowWrap: 'anywhere' }}>{question || 'No question submitted.'}</p>
         {question && <SaveViewStar view={currentView} savedViews={savedViews} onToggleView={onToggleView} />}
       </div>
-      {chart && (
-        <>
-          <p style={{ color: '#cbd5e1' }}>Demo data — illustrative counts</p>
-          {chart}
-          <p>{explanation}</p>
-        </>
-      )}
-      {exampleIndex === 0 && (
-        <PumpFailureDrillDown
-          data={mockPumpFailures}
-          wells={mockPumpWells}
-          selectedArea={area}
-          selectedWell={well}
-          onSelectionChange={updateSelection}
-        />
-      )}
-      {cactusWell && (
-        <CactusLakeOverview
-          wells={mockCactusLakeWells}
-          selectedWell={cactusWell}
-          onSelectWell={(wellId) => updateSelection(cactusLakeArea, wellId)}
-        />
-      )}
-      {question && exampleIndex === -1 && <p>Choose one of the five example questions to preview a result.</p>}
+      {question && <SearchVisualization result={result} failed={failed} selection={selection} onSelectionChange={updateSelection} />}
       <Link to='/' style={dashboardLinkStyle}>Back to homepage</Link>
     </main>
   )
-}
-
-function questionIndex(question) {
-  const normalized = question?.trim().toLowerCase()
-  return exampleQuestions.findIndex((example) => example.toLowerCase() === normalized)
-}
-
-function resolveViewSelection(index, area, wellId) {
-  if (index === 0) {
-    const validArea = mockPumpFailures.find((row) => row.area === area)?.area
-    const well = mockPumpWells.find((row) => row.id === wellId && (!area || row.area === validArea))
-    return { area: validArea ?? well?.area, well }
-  }
-  if (index === 4 && (!area || area === cactusLakeArea)) {
-    const well = mockCactusLakeWells.find((row) => row.id === wellId)
-    return { area: area || (well && cactusLakeArea), well }
-  }
-  return {}
 }
 
 function resultsViewUrl({ question, area, wellId }) {
@@ -988,8 +727,9 @@ function loadSavedViews() {
         || typeof entry.savedAt !== 'string' || !Number.isFinite(Date.parse(entry.savedAt))) continue
 
       const { id, question, title, savedAt } = entry
-      const { area, well } = resolveViewSelection(questionIndex(question), entry.area, entry.wellId)
-      const view = { id, question, title, savedAt, area, wellId: well?.id }
+      const area = typeof entry.area === 'string' ? entry.area : undefined
+      const wellId = typeof entry.wellId === 'string' ? entry.wellId : undefined
+      const view = { id, question, title, savedAt, area, wellId }
       const identity = savedViewIdentity(view)
       if (ids.has(id) || identities.has(identity)) continue
       ids.add(id)
@@ -1017,43 +757,9 @@ function SaveViewStar({ view, savedViews, onToggleView }) {
 }
 
 function SavedViewPreview({ view }) {
-  const index = questionIndex(view.question)
-  const { area, well } = resolveViewSelection(index, view.area, view.wellId)
-
-  if (well) {
-    const status = wellStatuses[well.status]
-    return (
-      <div style={{ ...wellGridStyle, minWidth: 0 }}>
-        {status
-          ? <p style={{ color: status.color }}>{status.label}</p>
-          : <p>{well.failureCount} recorded pump failures</p>}
-        <WellProductionChart data={well.productionHistory} compact />
-      </div>
-    )
-  }
-
-  switch (index) {
-    case 0:
-      return <PumpFailuresChart data={mockPumpFailures} selectedArea={area} compact />
-    case 1:
-      return <DowntimeChart data={mockDowntime} compact />
-    case 2:
-      return <RodFailureCausesChart data={mockRodFailureCauses} compact />
-    case 3:
-      return <MonthlyFailuresChart data={mockMonthlyFailures} compact />
-    case 4: {
-      const counts = countWellStatuses(mockCactusLakeWells)
-      return (
-        <dl style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
-          {Object.entries(wellStatuses).map(([key, { label, color }]) => (
-            <div key={key}><dt style={{ color }}>{label}</dt><dd>{counts[key]}</dd></div>
-          ))}
-        </dl>
-      )
-    }
-    default:
-      return <p style={{ color: '#cbd5e1' }}>No demo preview for this question.</p>
-  }
+  const { result, failed } = useSearchResult(view.question)
+  const selection = resolveViewSelection(result, view.area, view.wellId)
+  return <SearchVisualization result={result} failed={failed} selection={selection} compact />
 }
 
 function SavedViewCard({ view, onRename, onRemove }) {
@@ -1070,7 +776,7 @@ function SavedViewCard({ view, onRename, onRemove }) {
       <h3>{view.title}</h3>
       <p style={{ color: '#cbd5e1' }}>{view.question}</p>
       {view.area && <p>Operating area: {view.area}</p>}
-      {view.wellId && <p>Well: {view.wellId}</p>}
+      {view.wellId && !view.wellId.startsWith('DEMO-') && <p>Well: {view.wellId}</p>}
       <button ref={renameButton} type='button' onClick={() => setDraft(view.title)} style={{ ...pumpControlStyle, justifySelf: 'start' }}>
         Rename
       </button>
@@ -1108,7 +814,7 @@ function Dashboard({ savedViews, onRename, onRemove }) {
     <main className='App' style={{ ...resultPageStyle, textAlign: 'left' }}>
       <header style={{ ...wellGridStyle, width: 'min(100%, 1000px)' }}>
         <h1>My Dashboard</h1>
-        <p>Saved on this browser. All displayed readings are demo data.</p>
+        <p>Saved on this browser.</p>
         <Link to='/' style={{ ...dashboardLinkStyle, justifySelf: 'start' }}>Back to homepage</Link>
       </header>
       <section aria-labelledby='saved-views-heading' style={{ ...wellGridStyle, width: 'min(100%, 1000px)' }}>
