@@ -1,66 +1,100 @@
-
-.search-container {
-    width: 500px;
-    max-width: 100%;
-    padding: 20px;
-    background-color: #151E30;
-    border: 1px solid #334155;
-    border-radius: 12px;
+.search {
     display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.search-container .input-container {
-    display: flex;
-    align-items: center;
     width: 100%;
-    gap: 10px;
-    background-color: #0B1120;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 6px 8px 6px 15px;
-    transition: border-color 0.2s ease;
+    padding: 4px;
+    background-color: var(--raised);
+    border-radius: var(--pill);
 }
 
-.search-container .input-container:focus-within {
-    border-color: #3B82F6;
+.search:focus-within {
+    outline: 2px solid var(--signal);
+    outline-offset: 2px;
 }
 
-.search-container .input-container .search-box {
+.search-box {
     flex: 1;
     min-width: 0;
-    background-color: transparent;
-    color: #F1F5F9;
-    font-size: 14px;
-    border: none;
+    padding: 0 var(--s4);
+    background: transparent;
+    border: 0;
+    font-size: 15px;
+}
+
+/* The ring is drawn on the whole field instead. */
+.search-box:focus-visible {
     outline: none;
-    padding: 10px 0;
 }
 
-.search-container .input-container .search-box::placeholder {
-    color: #64748B;
+.search-box::placeholder {
+    color: var(--idle);
 }
 
-.search-container .input-container .search-button {
-    display: flex;
+.search-button {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: #2563EB;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    width: 38px;
-    height: 38px;
+    gap: var(--s2);
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 var(--s4);
+    background-color: var(--signal);
+    color: var(--on-signal);
+    border: 0;
+    border-radius: var(--pill);
+    font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--quick), transform var(--quick);
 }
 
-.search-container .input-container .search-button:hover {
-    background-color: #3B82F6;
+.search-button:hover {
+    background-color: var(--ink);
 }
 
-.search-container .input-container .search-button:focus-visible {
-    outline: 2px solid #93C5FD;
-    outline-offset: 2px;
+.search-button:active {
+    transform: scale(0.97);
+}
+
+.search-button:focus-visible {
+    outline-color: var(--ink);
+}
+
+.search.large {
+    padding: 6px;
+}
+
+.search.large .search-box {
+    font-size: 17px;
+}
+
+.search.large .search-button {
+    min-height: 52px;
+    padding: 0 var(--s5);
+}
+
+/* In the bar the button is the icon alone. */
+.bar .search-button {
+    padding: 0;
+}
+
+.bar .search-button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+@media (max-width: 480px) {
+    .search.large .search-button {
+        padding: 0;
+        min-width: 52px;
+    }
+
+    .search-button span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
 }
