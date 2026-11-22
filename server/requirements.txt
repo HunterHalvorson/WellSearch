@@ -3,3 +3,5 @@ uvicorn
 pandas
 pyarrow
 chromadb
+langchain
+langchain-groq
